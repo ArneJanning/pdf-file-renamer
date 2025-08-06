@@ -101,3 +101,78 @@ class BibliographicInfo(BaseModel):
             text = text[:max_length].rsplit(' ', 1)[0] + '...'
         
         return text.strip()
+
+
+class ScreenshotInfo(BaseModel):
+    """Model for information extracted from screenshots."""
+    
+    application: Optional[str] = Field(
+        None,
+        description="The application or software visible in the screenshot."
+    )
+    date: Optional[str] = Field(
+        None,
+        description="Date visible in the screenshot (YYYY-MM-DD format preferred)."
+    )
+    time: Optional[str] = Field(
+        None,
+        description="Time visible in the screenshot (HH:MM format preferred)."
+    )
+    content_type: Optional[str] = Field(
+        None,
+        description="Type of content (e.g., 'email', 'chat', 'document', 'website', 'error', 'settings')."
+    )
+    main_subject: str = Field(
+        ...,
+        description="Main subject or topic of the screenshot content."
+    )
+    
+    def format_filename(self, template: str) -> str:
+        """
+        Format filename based on template.
+        
+        Args:
+            template: Template string with placeholders
+            
+        Returns:
+            Formatted filename
+        """
+        # Clean up values for filename
+        application = self._clean_for_filename(self.application or "Unknown")
+        date = self._clean_for_filename(self.date or "Unknown-Date")
+        time = self._clean_for_filename(self.time or "")
+        content_type = self._clean_for_filename(self.content_type or "Screenshot")
+        main_subject = self._clean_for_filename(self.main_subject)
+        
+        # Create datetime string if both date and time are available
+        datetime = f"{date} {time}".strip() if date != "Unknown-Date" and time else date
+        
+        # Replace placeholders
+        filename = template.format(
+            application=application,
+            date=date,
+            time=time,
+            datetime=datetime,
+            content_type=content_type,
+            main_subject=main_subject
+        )
+        
+        return filename
+    
+    @staticmethod
+    def _clean_for_filename(text: str) -> str:
+        """Clean text to be safe for filenames."""
+        # Remove or replace invalid filename characters
+        invalid_chars = '<>:"/\\|?*'
+        for char in invalid_chars:
+            text = text.replace(char, '')
+        
+        # Replace multiple spaces with single space
+        text = ' '.join(text.split())
+        
+        # Limit length to avoid filesystem issues
+        max_length = 200
+        if len(text) > max_length:
+            text = text[:max_length].rsplit(' ', 1)[0] + '...'
+        
+        return text.strip()
