@@ -340,10 +340,19 @@ pdf-file-renamer/
 │   ├── models.py            # Pydantic models
 │   ├── ai_extractor.py      # Claude AI integration
 │   └── pdf_extractor.py     # PDF text extraction
-├── tests/                   # Test files
+├── tests/                   # Comprehensive test suite
+│   ├── conftest.py         # Test fixtures
+│   ├── test_models.py      # Model tests
+│   ├── test_pdf_extractor.py # PDF extraction tests
+│   ├── test_ai_extractor.py # AI integration tests
+│   ├── test_cli.py         # CLI tests
+│   ├── test_integration.py # Integration tests
+│   └── test_performance.py # Performance tests
+├── .github/workflows/      # CI/CD workflows
 ├── .env.example            # Example configuration
 ├── pyproject.toml          # Project configuration
 ├── README.md               # This file
+├── TEST_SUMMARY.md         # Test suite documentation
 └── LICENSE                 # MIT License
 ```
 
@@ -360,6 +369,43 @@ pip install -e .
 # Run directly
 python -m file_renamer /path/to/pdfs
 ```
+
+### Testing
+
+The project includes a comprehensive test suite with 80+ tests covering:
+
+**Install test dependencies:**
+```bash
+pip install -e ".[test]"
+```
+
+**Run all tests:**
+```bash
+pytest tests/ -v
+```
+
+**Run with coverage:**
+```bash
+pytest tests/ --cov=file_renamer --cov-report=term-missing
+```
+
+**Run performance tests:**
+```bash
+pytest tests/test_performance.py -v
+```
+
+**Use the test runner:**
+```bash
+python run_tests.py --install
+```
+
+**Test categories:**
+- **Unit Tests**: Individual component functionality
+- **Integration Tests**: End-to-end workflows  
+- **Performance Tests**: Scalability and efficiency
+- **CLI Tests**: Command-line interface behavior
+
+See [TEST_SUMMARY.md](TEST_SUMMARY.md) for detailed test documentation.
 
 ### Contributing
 
