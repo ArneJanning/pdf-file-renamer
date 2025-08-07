@@ -1,16 +1,26 @@
-# PDF File Renamer
+# PDF & Screenshot File Renamer
 
-A powerful CLI tool that automatically renames PDF files based on their bibliographic information (author, year, title) using Claude AI. Perfect for organizing academic papers, books, and other PDF documents with consistent, meaningful filenames.
+A powerful CLI tool that automatically renames PDF files and screenshots based on their content using Claude AI. For PDFs, it extracts bibliographic information (author, year, title). For screenshots, it uses OCR to extract text and AI to identify applications, dates, and content types. Perfect for organizing academic papers, books, screenshots, and other documents with consistent, meaningful filenames.
 
 ## Features
 
+### PDF Processing
 - 🤖 **AI-Powered Extraction**: Uses Claude AI to intelligently extract bibliographic information from PDFs
 - 📚 **Smart Name Detection**: Handles various naming conventions (e.g., "van Gogh", "O'Brien", "Smith Jr.")
-- 🎯 **Flexible Templates**: Fully customizable filename templates with multiple variables
-- 📁 **Batch Processing**: Process entire directories of PDFs at once
+- 📄 **Page Limit Control**: Analyzes only the first pages of PDFs for efficiency
+
+### Screenshot Processing (NEW!)
+- 🖼️ **OCR Text Extraction**: Uses Tesseract to extract text from screenshots
+- 🔍 **Intelligent Analysis**: AI identifies applications, dates, content types, and main subjects
+- 📸 **Format Support**: Handles PNG, JPG, JPEG, BMP, GIF, TIFF, WEBP
+- 🏷️ **Smart Categorization**: Recognizes emails, chats, errors, websites, documents, etc.
+
+### General Features
+- 🎯 **Flexible Templates**: Fully customizable filename templates for both PDFs and screenshots
+- 📁 **Batch Processing**: Process entire directories with mixed file types
 - 🔍 **Preview Mode**: Dry-run option to preview changes before applying them
 - 🛡️ **Safe Operation**: Automatic handling of duplicate filenames
-- ⚡ **Fast Processing**: Analyzes only the first pages of PDFs for efficiency
+- ⚡ **Fast Processing**: Efficient handling of large directories
 
 ## Table of Contents
 
@@ -18,7 +28,8 @@ A powerful CLI tool that automatically renames PDF files based on their bibliogr
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Usage](#usage)
-- [Filename Templates](#filename-templates)
+- [PDF Templates](#pdf-templates)
+- [Screenshot Templates](#screenshot-templates)
 - [Examples](#examples)
 - [API Key Setup](#api-key-setup)
 - [Advanced Usage](#advanced-usage)
@@ -32,6 +43,10 @@ A powerful CLI tool that automatically renames PDF files based on their bibliogr
 
 - Python 3.12 or higher
 - An Anthropic API key for Claude AI
+- Tesseract OCR (for screenshot processing)
+  - **Ubuntu/Debian**: `sudo apt install tesseract-ocr`
+  - **macOS**: `brew install tesseract`
+  - **Windows**: Download from [GitHub](https://github.com/UB-Mannheim/tesseract/wiki)
 
 ### Install from source
 
@@ -69,12 +84,12 @@ cp .env.example .env
 
 2. **Test with dry-run**:
 ```bash
-pdf-renamer /path/to/pdf/directory --dry-run
+pdf-renamer /path/to/directory --dry-run
 ```
 
-3. **Rename PDFs**:
+3. **Rename files**:
 ```bash
-pdf-renamer /path/to/pdf/directory
+pdf-renamer /path/to/directory
 ```
 
 ## Configuration
@@ -87,9 +102,14 @@ Create a `.env` file in your working directory (or copy `.env.example`):
 # Claude API Configuration
 ANTHROPIC_API_KEY=your-anthropic-api-key-here
 
-# File naming template
-# Default: {author_or_editor_last} {year} - {title}.pdf
-FILENAME_TEMPLATE={author_or_editor_last} {year} - {title}.pdf
+# PDF file naming template
+# Variables: {author}, {author_last}, {editor}, {editor_last}, 
+# {author_or_editor}, {author_or_editor_last}, {year}, {title}
+PDF_FILENAME_TEMPLATE={author_or_editor_last} {year} - {title}.pdf
+
+# Screenshot file naming template  
+# Variables: {application}, {date}, {time}, {datetime}, {content_type}, {main_subject}
+SCREENSHOT_FILENAME_TEMPLATE={datetime} {application} - {main_subject}.png
 
 # Number of pages to extract for analysis (default: 10)
 MAX_PAGES_TO_EXTRACT=10
@@ -103,7 +123,8 @@ CLAUDE_MODEL=claude-3-5-sonnet-20241022
 | Option | Description | Default |
 |--------|-------------|---------|
 | `ANTHROPIC_API_KEY` | Your Anthropic API key (required) | None |
-| `FILENAME_TEMPLATE` | Template for renamed files | `{author_or_editor_last} {year} - {title}.pdf` |
+| `PDF_FILENAME_TEMPLATE` | Template for renamed PDF files | `{author_or_editor_last} {year} - {title}.pdf` |
+| `SCREENSHOT_FILENAME_TEMPLATE` | Template for renamed screenshots | `{datetime} {application} - {main_subject}.png` |
 | `MAX_PAGES_TO_EXTRACT` | Number of PDF pages to analyze | 10 |
 | `CLAUDE_MODEL` | Claude model to use | `claude-3-5-sonnet-20241022` |
 
@@ -121,7 +142,8 @@ pdf-renamer [OPTIONS] DIRECTORY
 |--------|-------|-------------|
 | `--output` | `-o` | Output directory for renamed files (default: input directory) |
 | `--dry-run` | `-n` | Preview changes without renaming files |
-| `--template` | `-t` | Override the filename template from .env |
+| `--pdf-template` | | Override the PDF filename template from .env |
+| `--screenshot-template` | | Override the screenshot filename template from .env |
 | `--help` | | Show help message |
 
 ### Command Examples
@@ -136,9 +158,13 @@ pdf-renamer ~/Documents/Papers --dry-run
 pdf-renamer ~/Downloads/PDFs --output ~/Documents/Organized
 ```
 
-**Use a custom template**:
+**Use custom templates**:
 ```bash
-pdf-renamer ~/Papers --template "{author_last}, {author} ({year}) - {title}.pdf"
+# Custom PDF template
+pdf-renamer ~/Papers --pdf-template "{author_last}, {author} ({year}) - {title}.pdf"
+
+# Custom screenshot template
+pdf-renamer ~/Screenshots --screenshot-template "{application} - {content_type} - {main_subject}.png"
 ```
 
 **Process current directory**:
@@ -146,7 +172,7 @@ pdf-renamer ~/Papers --template "{author_last}, {author} ({year}) - {title}.pdf"
 pdf-renamer .
 ```
 
-## Filename Templates
+## PDF Templates
 
 ### Available Variables
 
@@ -193,6 +219,51 @@ pdf-renamer .
    → F. Scott Fitzgerald (1925) - The Great Gatsby [Fitzgerald].pdf
    ```
 
+## Screenshot Templates
+
+### Available Variables
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `{application}` | Application/software name | "Chrome", "WhatsApp", "Terminal" |
+| `{date}` | Date from screenshot | "2025-01-15" |
+| `{time}` | Time from screenshot | "14:30" |
+| `{datetime}` | Combined date and time | "2025-01-15 14:30" |
+| `{content_type}` | Type of content | "email", "chat", "error", "website" |
+| `{main_subject}` | AI-determined subject | "Project Meeting Schedule" |
+
+### Template Examples
+
+1. **Default format** (chronological organization):
+   ```
+   {datetime} {application} - {main_subject}.png
+   → 2025-01-15 14:30 Gmail - Project Meeting Schedule Email.png
+   ```
+
+2. **Application-based organization**:
+   ```
+   {application}/{date} - {main_subject}.png
+   → Gmail/2025-01-15 - Project Meeting Schedule Email.png
+   ```
+
+3. **Content type grouping**:
+   ```
+   {content_type}/{application} - {main_subject}.png
+   → email/Gmail - Project Meeting Schedule Email.png
+   ```
+
+4. **Minimal format**:
+   ```
+   {date} - {main_subject}.png
+   → 2025-01-15 - Project Meeting Schedule Email.png
+   ```
+
+5. **Detailed format**:
+   ```
+   {date} {time} - {application} ({content_type}) - {main_subject}.png
+   → 2025-01-15 14:30 - Gmail (email) - Project Meeting Schedule Email.png
+   ```
+
 ## Examples
 
 ### Example 1: Organizing Research Papers
@@ -226,11 +297,43 @@ pdf-renamer ~/Library/PDFs \
 
 ```bash
 # Books often have editors instead of authors
-pdf-renamer ~/Books --template "{author_or_editor} - {title} ({year}).pdf"
+pdf-renamer ~/Books --pdf-template "{author_or_editor} - {title} ({year}).pdf"
 
 # Output example:
 # Original: handbook_of_ai.pdf
 # Renamed: Smith (Ed.) - Handbook of Artificial Intelligence (2022).pdf
+```
+
+### Example 4: Processing Screenshots
+
+```bash
+# Process a directory of screenshots
+pdf-renamer ~/Screenshots --dry-run
+
+# Output:
+# Processing: email_screenshot.png
+#   Application: Gmail
+#   Date: 2025-01-15
+#   Content Type: email
+#   Main Subject: Project Meeting Schedule Email
+#   New filename: 2025-01-15 1430 Gmail - Project Meeting Schedule Email.png
+#   [DRY RUN] Would copy to: ~/Screenshots/2025-01-15 1430 Gmail - Project Meeting Schedule Email.png
+```
+
+### Example 5: Mixed Directory (PDFs and Screenshots)
+
+```bash
+# Process a Downloads folder with both PDFs and screenshots
+pdf-renamer ~/Downloads
+
+# Output:
+# Found 150 PDF files and 45 screenshot files to process
+# Processing PDF files...
+# Processing: research_paper.pdf
+#   New filename: Johnson 2024 - Machine Learning in Healthcare.pdf
+# Processing screenshot files...
+# Processing: screenshot_2024.png
+#   New filename: 2024-01-20 1030 Terminal - Docker Container Status.png
 ```
 
 ## API Key Setup
@@ -304,9 +407,15 @@ No year: Author Unknown Year - Title.pdf
 - Try exporting the key: `export ANTHROPIC_API_KEY="your-key"`
 
 **"Failed to extract text from PDF"**
-- The PDF might be scanned/image-based (OCR not supported yet)
+- The PDF might be scanned/image-based
 - The PDF might be corrupted
 - Try opening the PDF in a reader to verify it's valid
+
+**"Failed to extract text from screenshot"**
+- Ensure Tesseract is installed: `which tesseract`
+- The image might be corrupted or in an unsupported format
+- Try a different image format (PNG usually works best)
+- Check if the image contains readable text
 
 **"Failed to extract bibliographic information"**
 - The PDF might not contain clear bibliographic information
@@ -339,7 +448,7 @@ pdf-file-renamer/
 │   ├── cli.py               # CLI interface
 │   ├── models.py            # Pydantic models
 │   ├── ai_extractor.py      # Claude AI integration
-│   └── pdf_extractor.py     # PDF text extraction
+│   └── pdf_extractor.py     # PDF and screenshot text extraction
 ├── tests/                   # Comprehensive test suite
 │   ├── conftest.py         # Test fixtures
 │   ├── test_models.py      # Model tests
@@ -434,6 +543,8 @@ MIT License - see LICENSE file for details.
 - Built with [PydanticAI](https://ai.pydantic.dev/) for structured AI interactions
 - Powered by [Claude](https://www.anthropic.com/) from Anthropic
 - PDF processing via [pypdf](https://pypdf.readthedocs.io/)
+- OCR processing via [pytesseract](https://github.com/madmaze/pytesseract) and [Tesseract OCR](https://github.com/tesseract-ocr/tesseract)
+- Image handling with [Pillow](https://python-pillow.org/)
 - CLI interface using [Click](https://click.palletsprojects.com/)
 
 ## Support
