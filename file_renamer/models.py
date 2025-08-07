@@ -27,7 +27,11 @@ class BibliographicInfo(BaseModel):
     )
     title: str = Field(
         ..., 
-        description="Title of the publication."
+        description="Main title of the publication."
+    )
+    subtitle: Optional[str] = Field(
+        None,
+        description="Subtitle of the publication (if present)."
     )
     
     @property
@@ -50,6 +54,17 @@ class BibliographicInfo(BaseModel):
         else:
             return "Unknown"
     
+    @property
+    def full_title(self) -> str:
+        """Return title with subtitle properly formatted."""
+        if self.subtitle:
+            # Add period if title doesn't end with punctuation
+            title = self.title.rstrip()
+            if not title.endswith(('.', '!', '?', ':')):
+                title += '.'
+            return f"{title} {self.subtitle}"
+        return self.title
+    
     def format_filename(self, template: str) -> str:
         """
         Format filename based on template.
@@ -65,6 +80,8 @@ class BibliographicInfo(BaseModel):
         author_or_editor_last = self._clean_for_filename(self.author_or_editor_last)
         year = self._clean_for_filename(self.year or "Unknown Year")
         title = self._clean_for_filename(self.title)
+        subtitle = self._clean_for_filename(self.subtitle or "")
+        full_title = self._clean_for_filename(self.full_title)
         author = self._clean_for_filename(self.author or "")
         author_last = self._clean_for_filename(self.author_last or "")
         editor = self._clean_for_filename(self.editor or "")
@@ -79,7 +96,9 @@ class BibliographicInfo(BaseModel):
             editor=editor,
             editor_last=editor_last,
             year=year,
-            title=title
+            title=title,
+            subtitle=subtitle,
+            full_title=full_title
         )
         
         return filename

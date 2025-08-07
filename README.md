@@ -114,8 +114,9 @@ ANTHROPIC_API_KEY=your-anthropic-api-key-here
 
 # PDF file naming template
 # Variables: {author}, {author_last}, {editor}, {editor_last}, 
-# {author_or_editor}, {author_or_editor_last}, {year}, {title}
-PDF_FILENAME_TEMPLATE={author_or_editor_last} {year} - {title}.pdf
+# {author_or_editor}, {author_or_editor_last}, {year}, {title}, {subtitle}, {full_title}
+# Use {full_title} for title with subtitle properly formatted (recommended)
+PDF_FILENAME_TEMPLATE={author_or_editor_last} {year} - {full_title}.pdf
 
 # Screenshot file naming template  
 # Variables: {application}, {date}, {time}, {datetime}, {content_type}, {main_subject}
@@ -200,38 +201,44 @@ pdf-renamer .
 | `{author_or_editor}` | Author or editor (with suffix) | "F. Scott Fitzgerald" or "John Smith (Ed.)" |
 | `{author_or_editor_last}` | Last name of author or editor | "Fitzgerald" or "Smith" |
 | `{year}` | Publication year | "1925" |
-| `{title}` | Publication title | "The Great Gatsby" |
+| `{title}` | Main title only | "Red Mafiya" |
+| `{subtitle}` | Subtitle only (if present) | "How the Russian Mob Has Invaded America" |
+| `{full_title}` | Title with subtitle properly formatted | "Red Mafiya. How the Russian Mob Has Invaded America" |
 
 ### Template Examples
 
-1. **Default format** (clean and simple):
+1. **Default format** (clean and simple, with subtitle support):
    ```
-   {author_or_editor_last} {year} - {title}.pdf
+   {author_or_editor_last} {year} - {full_title}.pdf
    → Fitzgerald 1925 - The Great Gatsby.pdf
+   → Friedman 2000 - Red Mafiya. How the Russian Mob Has Invaded America.pdf
    ```
 
 2. **Academic citation style**:
    ```
-   {author_last}, {author} ({year}). {title}.pdf
+   {author_last}, {author} ({year}). {full_title}.pdf
    → Fitzgerald, F. Scott Fitzgerald (1925). The Great Gatsby.pdf
+   → Friedman, Robert I. Friedman (2000). Red Mafiya. How the Russian Mob Has Invaded America.pdf
    ```
 
 3. **Library style**:
    ```
-   [{year}] {author_or_editor} - {title}.pdf
+   [{year}] {author_or_editor} - {full_title}.pdf
    → [1925] F. Scott Fitzgerald - The Great Gatsby.pdf
+   → [2000] Robert I. Friedman - Red Mafiya. How the Russian Mob Has Invaded America.pdf
    ```
 
-4. **Minimal style**:
+4. **Title and subtitle separate**:
    ```
-   {author_last}-{year}-{title}.pdf
-   → Fitzgerald-1925-The Great Gatsby.pdf
+   {author_last}-{year}-{title}_{subtitle}.pdf
+   → Friedman-2000-Red Mafiya_How the Russian Mob Has Invaded America.pdf
    ```
 
 5. **Full information**:
    ```
-   {author} ({year}) - {title} [{author_last}].pdf
+   {author} ({year}) - {full_title} [{author_last}].pdf
    → F. Scott Fitzgerald (1925) - The Great Gatsby [Fitzgerald].pdf
+   → Robert I. Friedman (2000) - Red Mafiya. How the Russian Mob Has Invaded America [Friedman].pdf
    ```
 
 ## Screenshot Templates
