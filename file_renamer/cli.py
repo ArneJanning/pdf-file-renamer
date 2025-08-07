@@ -81,6 +81,9 @@ async def process_pdf(pdf_path: Path, extractor: BibliographicExtractor, config:
     logger.info(f"  Author/Editor: {bib_info.author_or_editor}")
     logger.info(f"  Year: {bib_info.year or 'Unknown'}")
     logger.info(f"  Title: {bib_info.title}")
+    if bib_info.subtitle:
+        logger.info(f"  Subtitle: {bib_info.subtitle}")
+        logger.info(f"  Full title: {bib_info.full_title}")
     logger.info(f"  New filename: {new_path.name}")
     
     if not dry_run:
