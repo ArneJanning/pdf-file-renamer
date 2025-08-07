@@ -46,11 +46,11 @@ class BibliographicInfo(BaseModel):
     
     @property
     def author_or_editor_last(self) -> str:
-        """Return last name of author if available, otherwise editor, otherwise 'Unknown'."""
+        """Return last name(s) of authors/editors, up to 3, with 'et al' if more."""
         if self.author_last:
-            return self.author_last
+            return self._format_multiple_last_names(self.author_last)
         elif self.editor_last:
-            return self.editor_last
+            return self._format_multiple_last_names(self.editor_last)
         else:
             return "Unknown"
     
@@ -120,6 +120,48 @@ class BibliographicInfo(BaseModel):
             text = text[:max_length].rsplit(' ', 1)[0] + '...'
         
         return text.strip()
+    
+    def _format_multiple_last_names(self, name_string: str) -> str:
+        """
+        Format multiple last names from a string, showing up to 3 with 'et al' if more.
+        This method now expects the AI to provide properly formatted last names.
+        
+        Args:
+            name_string: String containing author/editor last names (AI-processed)
+            
+        Returns:
+            Formatted string with up to 3 last names, comma-separated
+        """
+        if not name_string:
+            return "Unknown"
+        
+        # Split by common separators and clean up
+        separators = [' and ', ', ', ' & ', ';']
+        names = [name_string]
+        
+        for sep in separators:
+            new_names = []
+            for name in names:
+                new_names.extend([n.strip() for n in name.split(sep) if n.strip()])
+            names = new_names
+        
+        # Remove duplicates while preserving order
+        unique_names = []
+        seen = set()
+        for name in names:
+            if name not in seen:
+                unique_names.append(name.strip())
+                seen.add(name.strip())
+        
+        # Format the result
+        if not unique_names:
+            return "Unknown"
+        elif len(unique_names) == 1:
+            return unique_names[0]
+        elif len(unique_names) <= 3:
+            return ", ".join(unique_names)
+        else:
+            return f"{', '.join(unique_names[:3])} et al"
 
 
 class ScreenshotInfo(BaseModel):
