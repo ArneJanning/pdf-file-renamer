@@ -1,6 +1,15 @@
 # PDF & Screenshot File Renamer
 
-A powerful CLI tool that automatically renames PDF files and screenshots based on their content using Claude AI. For PDFs, it extracts bibliographic information (author, year, title). For screenshots, it uses OCR to extract text and AI to identify applications, dates, and content types. Perfect for organizing academic papers, books, screenshots, and other documents with consistent, meaningful filenames.
+A powerful CLI tool that automatically renames PDF files and screenshots based on their content using Claude AI. For PDFs, it extracts bibliographic information (author, year, title). For screenshots, it uses either local OCR (Tesseract) or Claude Vision to analyze content and identify applications, dates, and content types. Perfect for organizing academic papers, books, screenshots, and other documents with consistent, meaningful filenames.
+
+**Latest Version: 0.2.1** - Now with dual OCR methods for screenshots!
+
+## What's New in v0.2.1
+
+- **Claude Vision Support**: Use Claude's vision capabilities directly on screenshots for perfect accuracy
+- **Dual OCR Methods**: Choose between Tesseract (free, local) or Claude Vision (accurate, API-based)
+- **Flexible Configuration**: Set OCR method via CLI flag or environment variable
+- **No Tesseract Required**: When using Claude Vision, no local OCR installation needed
 
 ## Features
 
@@ -117,6 +126,9 @@ MAX_PAGES_TO_EXTRACT=10
 
 # Claude model to use (default: claude-3-5-sonnet-20241022)
 CLAUDE_MODEL=claude-3-5-sonnet-20241022
+
+# OCR method for screenshots: 'tesseract' or 'claude' (default: tesseract)
+OCR_METHOD=tesseract
 ```
 
 ### Configuration Options
@@ -339,6 +351,22 @@ pdf-renamer ~/Downloads
 #   New filename: 2024-01-20 1030 Terminal - Docker Container Status.png
 ```
 
+### Example 6: Using Claude Vision for Screenshots
+
+```bash
+# Use Claude Vision for more accurate screenshot analysis
+pdf-renamer ~/Screenshots --ocr-method claude
+
+# Output:
+# Processing: error_dialog.png
+#   Application: Microsoft Windows
+#   Date: 2025-01-16
+#   Content Type: error
+#   Main Subject: Application Error 0x80070005
+#   New filename: 2025-01-16 1145 Microsoft Windows - Application Error 0x80070005.png
+# Note: Using Claude Vision - no OCR errors!
+```
+
 ## API Key Setup
 
 ### Getting an Anthropic API Key
@@ -451,7 +479,8 @@ No year: Author Unknown Year - Title.pdf
 - Try opening the PDF in a reader to verify it's valid
 
 **"Failed to extract text from screenshot"**
-- Ensure Tesseract is installed: `which tesseract`
+- Ensure Tesseract is installed: `which tesseract` (only needed for Tesseract OCR)
+- Try switching to Claude Vision: `--ocr-method claude`
 - The image might be corrupted or in an unsupported format
 - Try a different image format (PNG usually works best)
 - Check if the image contains readable text
@@ -500,6 +529,8 @@ pdf-file-renamer/
 ├── .env.example            # Example configuration
 ├── pyproject.toml          # Project configuration
 ├── README.md               # This file
+├── CHANGELOG.md            # Version history
+├── SCREENSHOT_TEST_RESULTS.md # Screenshot functionality test results
 ├── TEST_SUMMARY.md         # Test suite documentation
 └── LICENSE                 # MIT License
 ```
@@ -580,9 +611,10 @@ MIT License - see LICENSE file for details.
 ## Acknowledgments
 
 - Built with [PydanticAI](https://ai.pydantic.dev/) for structured AI interactions
-- Powered by [Claude](https://www.anthropic.com/) from Anthropic
+- Powered by [Claude](https://www.anthropic.com/) from Anthropic for content analysis
 - PDF processing via [pypdf](https://pypdf.readthedocs.io/)
-- OCR processing via [pytesseract](https://github.com/madmaze/pytesseract) and [Tesseract OCR](https://github.com/tesseract-ocr/tesseract)
+- OCR processing via [pytesseract](https://github.com/madmaze/pytesseract) and [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) (optional)
+- Claude Vision API for direct image analysis (alternative to OCR)
 - Image handling with [Pillow](https://python-pillow.org/)
 - CLI interface using [Click](https://click.palletsprojects.com/)
 
