@@ -46,11 +46,12 @@ class BibliographicInfo(BaseModel):
     
     @property
     def author_or_editor_last(self) -> str:
-        """Return last name(s) of authors/editors, up to 3, with 'et al' if more."""
+        """Return last name(s) of authors/editors, up to 3, with 'et al' if more. Adds (Ed.) for editors."""
         if self.author_last:
             return self._format_multiple_last_names(self.author_last)
         elif self.editor_last:
-            return self._format_multiple_last_names(self.editor_last)
+            formatted_names = self._format_multiple_last_names(self.editor_last)
+            return f"{formatted_names} (Ed.)"
         else:
             return "Unknown"
     
