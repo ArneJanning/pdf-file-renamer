@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-01-08
+
+### Added
+- 🎯 **Dual OCR Methods for Screenshots**
+  - Tesseract OCR (default): Local processing, fast, free
+  - Claude Vision: Direct image analysis, more accurate, no OCR errors
+  - New `--ocr-method` CLI option to choose between methods
+  - `OCR_METHOD` environment variable for persistent configuration
+
+### Changed
+- Screenshot processing now supports both local OCR and cloud-based vision
+- Updated documentation with OCR method comparison and recommendations
+
+### Technical
+- Added `_extract_from_image()` method using Anthropic API directly for vision
+- Made Tesseract optional - only required when using local OCR method
+
 ## [0.2.0] - 2025-01-08
 
 ### Added

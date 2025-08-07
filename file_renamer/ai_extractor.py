@@ -1,6 +1,8 @@
 import logging
 import os
-from typing import Optional
+from typing import Optional, Union
+from pathlib import Path
+import base64
 
 from pydantic_ai import Agent
 from pydantic_ai.models.anthropic import AnthropicModel
@@ -95,7 +97,7 @@ class ScreenshotExtractor:
             output_type=ScreenshotInfo,
             system_prompt=(
                 "You are an expert at analyzing screenshots and extracting meaningful information. "
-                "From the OCR text extracted from screenshots, identify the application, date/time, "
+                "Analyze the screenshot to identify the application, date/time, "
                 "content type, and main subject to create descriptive filenames. "
                 "\n\n"
                 "Guidelines:\n"
@@ -110,27 +112,171 @@ class ScreenshotExtractor:
             )
         )
     
-    async def extract_info(self, screenshot_text: str) -> Optional[ScreenshotInfo]:
+    async def extract_info(self, screenshot_data: Union[str, Path]) -> Optional[ScreenshotInfo]:
         """
-        Extract screenshot information from OCR text.
+        Extract screenshot information from OCR text or image file.
         
         Args:
-            screenshot_text: Text extracted from screenshot via OCR
+            screenshot_data: Either OCR text string or Path to image file
             
         Returns:
             ScreenshotInfo object or None if extraction fails
         """
         try:
-            prompt = (
-                "Please analyze the following OCR text extracted from a screenshot and provide "
-                "structured information about it. Focus on identifying the application, any dates/times, "
-                "the type of content, and the main subject.\n\n"
-                f"OCR Text:\n{screenshot_text}"
-            )
-            
-            result = await self.agent.run(prompt)
-            return result.output
+            if isinstance(screenshot_data, Path):
+                # Use Claude Vision to analyze the image directly
+                # For Claude Vision, we need to use the Anthropic API directly
+                # as pydantic-ai doesn't yet support image inputs natively
+                return await self._extract_from_image(screenshot_data)
+            else:
+                # Use OCR text (backward compatibility)
+                prompt = (
+                    "Please analyze the following OCR text extracted from a screenshot and provide "
+                    "structured information about it. Focus on identifying the application, any dates/times, "
+                    "the type of content, and the main subject.\n\n"
+                    f"OCR Text:\n{screenshot_data}"
+                )
+                
+                result = await self.agent.run(prompt)
+                return result.output
             
         except Exception as e:
             logger.error(f"Error extracting screenshot info: {e}")
+            return None
+    
+    def _create_image_prompt(self, image_path: Path) -> list:
+        """Create a prompt with image for Claude Vision."""
+        # Read and encode the image
+        with open(image_path, 'rb') as f:
+            image_data = base64.b64encode(f.read()).decode('utf-8')
+        
+        # Determine the media type
+        suffix = image_path.suffix.lower()
+        media_type_map = {
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.bmp': 'image/bmp',
+            '.webp': 'image/webp',
+            '.tiff': 'image/tiff',
+        }
+        media_type = media_type_map.get(suffix, 'image/png')
+        
+        # Create the prompt with image
+        prompt = [
+            {
+                "type": "text",
+                "text": (
+                    "Please analyze this screenshot and provide structured information about it. "
+                    "Focus on identifying the application, any dates/times, the type of content, "
+                    "and the main subject. Look at all visual elements including UI components, "
+                    "logos, and text to make accurate identifications."
+                )
+            },
+            {
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": media_type,
+                    "data": image_data
+                }
+            }
+        ]
+        
+        return prompt
+    
+    async def _extract_from_image(self, image_path: Path) -> Optional[ScreenshotInfo]:
+        """Extract information directly from image using Claude Vision."""
+        try:
+            # Import anthropic directly for image support
+            import anthropic
+            
+            # Create Anthropic client
+            client = anthropic.AsyncAnthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
+            
+            # Read and encode the image
+            with open(image_path, 'rb') as f:
+                image_data = base64.b64encode(f.read()).decode('utf-8')
+            
+            # Determine the media type
+            suffix = image_path.suffix.lower()
+            media_type_map = {
+                '.png': 'image/png',
+                '.jpg': 'image/jpeg',
+                '.jpeg': 'image/jpeg',
+                '.gif': 'image/gif',
+                '.bmp': 'image/bmp',
+                '.webp': 'image/webp',
+                '.tiff': 'image/tiff',
+            }
+            media_type = media_type_map.get(suffix, 'image/png')
+            
+            # Create the message with image
+            message = await client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=1000,
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": (
+                                "Please analyze this screenshot and extract the following information in a structured format:\n"
+                                "1. Application or software shown (e.g., 'Chrome', 'WhatsApp', 'Terminal')\n"
+                                "2. Any visible date (in YYYY-MM-DD format if possible)\n"
+                                "3. Any visible time (in HH:MM format if possible)\n"
+                                "4. Content type (e.g., 'email', 'chat', 'document', 'website', 'error', 'settings')\n"
+                                "5. Main subject or topic (a concise description in a few words)\n\n"
+                                "Provide the response in this exact JSON format:\n"
+                                "{\n"
+                                '  "application": "app name or null",\n'
+                                '  "date": "YYYY-MM-DD or null",\n'
+                                '  "time": "HH:MM or null",\n'
+                                '  "content_type": "type or null",\n'
+                                '  "main_subject": "subject description"\n'
+                                "}"
+                            )
+                        },
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": image_data
+                            }
+                        }
+                    ]
+                }]
+            )
+            
+            # Parse the response
+            import json
+            response_text = message.content[0].text
+            
+            # Try to extract JSON from the response
+            # Sometimes Claude might wrap it in markdown code blocks
+            if "```json" in response_text:
+                json_start = response_text.find("```json") + 7
+                json_end = response_text.find("```", json_start)
+                response_text = response_text[json_start:json_end].strip()
+            elif "```" in response_text:
+                json_start = response_text.find("```") + 3
+                json_end = response_text.find("```", json_start)
+                response_text = response_text[json_start:json_end].strip()
+            
+            # Parse JSON response
+            data = json.loads(response_text)
+            
+            # Create ScreenshotInfo object
+            return ScreenshotInfo(
+                application=data.get("application"),
+                date=data.get("date"),
+                time=data.get("time"),
+                content_type=data.get("content_type"),
+                main_subject=data.get("main_subject", "Unknown Subject")
+            )
+            
+        except Exception as e:
+            logger.error(f"Error using Claude Vision: {e}")
             return None

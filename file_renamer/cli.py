@@ -28,7 +28,8 @@ def load_config():
         'model_name': os.getenv('CLAUDE_MODEL', 'claude-3-5-sonnet-20241022'),
         'pdf_template': os.getenv('PDF_FILENAME_TEMPLATE', '[{author_or_editor}] {year} - {title}.pdf'),
         'screenshot_template': os.getenv('SCREENSHOT_FILENAME_TEMPLATE', '{datetime} {application} - {main_subject}.png'),
-        'max_pages': int(os.getenv('MAX_PAGES_TO_EXTRACT', '10'))
+        'max_pages': int(os.getenv('MAX_PAGES_TO_EXTRACT', '10')),
+        'ocr_method': os.getenv('OCR_METHOD', 'tesseract').lower()  # 'tesseract' or 'claude'
     }
     
     # Backward compatibility: if old FILENAME_TEMPLATE exists, use it for PDFs
@@ -103,14 +104,20 @@ async def process_screenshot(image_path: Path, extractor: ScreenshotExtractor, c
     """
     logger.info(f"Processing: {image_path.name}")
     
-    # Extract text from screenshot using OCR
-    screenshot_text = extract_screenshot_text(image_path)
-    if not screenshot_text:
-        logger.error(f"Failed to extract text from {image_path}")
-        return
+    # Choose OCR method based on configuration
+    if config.get('ocr_method') == 'claude':
+        # Use Claude Vision directly on the image
+        logger.debug("Using Claude Vision for OCR")
+        screenshot_info = await extractor.extract_info(image_path)
+    else:
+        # Use Tesseract OCR (default)
+        logger.debug("Using Tesseract for OCR")
+        screenshot_text = extract_screenshot_text(image_path)
+        if not screenshot_text:
+            logger.error(f"Failed to extract text from {image_path}")
+            return
+        screenshot_info = await extractor.extract_info(screenshot_text)
     
-    # Extract screenshot information
-    screenshot_info = await extractor.extract_info(screenshot_text)
     if not screenshot_info:
         logger.error(f"Failed to extract information from {image_path}")
         return
@@ -185,7 +192,9 @@ async def process_directory(directory: Path, pdf_extractor: BibliographicExtract
               help='PDF filename template (overrides .env setting)')
 @click.option('--screenshot-template',
               help='Screenshot filename template (overrides .env setting)')
-def main(directory: Path, output: Path, dry_run: bool, pdf_template: str, screenshot_template: str):
+@click.option('--ocr-method', type=click.Choice(['tesseract', 'claude'], case_sensitive=False),
+              help='OCR method for screenshots: tesseract (local, fast) or claude (accurate, uses API)')
+def main(directory: Path, output: Path, dry_run: bool, pdf_template: str, screenshot_template: str, ocr_method: str):
     """
     Rename PDF files and screenshots based on their content.
     
@@ -194,6 +203,10 @@ def main(directory: Path, output: Path, dry_run: bool, pdf_template: str, screen
     - For screenshots: Uses OCR to extract text, then AI to identify application, date, and content
     
     Supported screenshot formats: PNG, JPG, JPEG, BMP, GIF, TIFF, WEBP
+    
+    OCR Methods for screenshots:
+    - tesseract: Local OCR processing (fast, requires Tesseract installed)
+    - claude: Claude Vision API (more accurate, no OCR needed, uses more API credits)
     """
     try:
         # Load configuration
@@ -204,6 +217,8 @@ def main(directory: Path, output: Path, dry_run: bool, pdf_template: str, screen
             config['pdf_template'] = pdf_template
         if screenshot_template:
             config['screenshot_template'] = screenshot_template
+        if ocr_method:
+            config['ocr_method'] = ocr_method.lower()
         
         # Set output directory
         if output:

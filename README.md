@@ -10,7 +10,7 @@ A powerful CLI tool that automatically renames PDF files and screenshots based o
 - 📄 **Page Limit Control**: Analyzes only the first pages of PDFs for efficiency
 
 ### Screenshot Processing (NEW!)
-- 🖼️ **OCR Text Extraction**: Uses Tesseract to extract text from screenshots
+- 🖼️ **Dual OCR Methods**: Choose between Tesseract (local) or Claude Vision (API)
 - 🔍 **Intelligent Analysis**: AI identifies applications, dates, content types, and main subjects
 - 📸 **Format Support**: Handles PNG, JPG, JPEG, BMP, GIF, TIFF, WEBP
 - 🏷️ **Smart Categorization**: Recognizes emails, chats, errors, websites, documents, etc.
@@ -43,10 +43,11 @@ A powerful CLI tool that automatically renames PDF files and screenshots based o
 
 - Python 3.12 or higher
 - An Anthropic API key for Claude AI
-- Tesseract OCR (for screenshot processing)
+- Tesseract OCR (optional, for local screenshot OCR)
   - **Ubuntu/Debian**: `sudo apt install tesseract-ocr`
   - **macOS**: `brew install tesseract`
   - **Windows**: Download from [GitHub](https://github.com/UB-Mannheim/tesseract/wiki)
+  - **Note**: Not needed if using Claude Vision for OCR
 
 ### Install from source
 
@@ -127,6 +128,7 @@ CLAUDE_MODEL=claude-3-5-sonnet-20241022
 | `SCREENSHOT_FILENAME_TEMPLATE` | Template for renamed screenshots | `{datetime} {application} - {main_subject}.png` |
 | `MAX_PAGES_TO_EXTRACT` | Number of PDF pages to analyze | 10 |
 | `CLAUDE_MODEL` | Claude model to use | `claude-3-5-sonnet-20241022` |
+| `OCR_METHOD` | OCR method for screenshots: `tesseract` or `claude` | `tesseract` |
 
 ## Usage
 
@@ -144,6 +146,7 @@ pdf-renamer [OPTIONS] DIRECTORY
 | `--dry-run` | `-n` | Preview changes without renaming files |
 | `--pdf-template` | | Override the PDF filename template from .env |
 | `--screenshot-template` | | Override the screenshot filename template from .env |
+| `--ocr-method` | | OCR method for screenshots: `tesseract` or `claude` |
 | `--help` | | Show help message |
 
 ### Command Examples
@@ -363,6 +366,42 @@ ANTHROPIC_API_KEY="sk-ant-api..." pdf-renamer /path/to/pdfs
 ```
 
 ## Advanced Usage
+
+### OCR Methods for Screenshots
+
+The tool supports two OCR methods for processing screenshots:
+
+#### 1. Tesseract (Default)
+- **Pros**: Fast, free, runs locally, no API costs
+- **Cons**: May have OCR errors, requires Tesseract installation
+- **Usage**: Default method, or use `--ocr-method tesseract`
+
+```bash
+# Using Tesseract (default)
+pdf-renamer ~/Screenshots
+
+# Explicitly specify Tesseract
+pdf-renamer ~/Screenshots --ocr-method tesseract
+```
+
+#### 2. Claude Vision
+- **Pros**: More accurate, no OCR errors, understands visual context, no Tesseract needed
+- **Cons**: Uses more API credits (~10x), slightly slower
+- **Usage**: Use `--ocr-method claude` or set `OCR_METHOD=claude` in .env
+
+```bash
+# Using Claude Vision for better accuracy
+pdf-renamer ~/Screenshots --ocr-method claude
+
+# Set in .env file for permanent configuration
+echo "OCR_METHOD=claude" >> .env
+```
+
+**Comparison Example**:
+- Tesseract might read: "Mierosoft Windows" (OCR error)
+- Claude Vision reads: "Microsoft Windows" (accurate)
+
+**Recommendation**: Use Tesseract for bulk processing to save costs, Claude Vision for important files where accuracy matters.
 
 ### Handling Special Cases
 
