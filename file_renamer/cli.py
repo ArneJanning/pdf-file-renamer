@@ -26,7 +26,7 @@ def load_config():
     config = {
         'api_key': os.getenv('ANTHROPIC_API_KEY'),
         'model_name': os.getenv('CLAUDE_MODEL', 'claude-3-5-sonnet-20241022'),
-        'pdf_template': os.getenv('PDF_FILENAME_TEMPLATE', '[{author_or_editor}] {year} - {title}.pdf'),
+        'pdf_template': os.getenv('PDF_FILENAME_TEMPLATE', '{author_or_editor_last} {year} - {full_title}.pdf'),
         'screenshot_template': os.getenv('SCREENSHOT_FILENAME_TEMPLATE', '{datetime} {application} - {main_subject}.png'),
         'max_pages': int(os.getenv('MAX_PAGES_TO_EXTRACT', '10')),
         'ocr_method': os.getenv('OCR_METHOD', 'tesseract').lower()  # 'tesseract' or 'claude'
@@ -84,11 +84,27 @@ async def process_pdf(pdf_path: Path, extractor: BibliographicExtractor, config:
     logger.info(f"  New filename: {new_path.name}")
     
     if not dry_run:
-        # Copy file to new location with new name
-        shutil.copy2(pdf_path, new_path)
-        logger.info(f"  Copied to: {new_path}")
+        try:
+            # Copy file to new location with new name
+            shutil.copy2(pdf_path, new_path)
+            logger.info(f"  Copied to: {new_path}")
+            
+            # Delete the original file after successful copy
+            pdf_path.unlink()
+            logger.info(f"  Deleted original: {pdf_path}")
+        except Exception as e:
+            logger.error(f"  Failed to process file {pdf_path}: {e}")
+            # If new file was created but delete failed, clean up the new file
+            if new_path.exists():
+                try:
+                    new_path.unlink()
+                    logger.info(f"  Cleaned up incomplete copy: {new_path}")
+                except Exception as cleanup_error:
+                    logger.error(f"  Failed to clean up {new_path}: {cleanup_error}")
+            return
     else:
         logger.info(f"  [DRY RUN] Would copy to: {new_path}")
+        logger.info(f"  [DRY RUN] Would delete original: {pdf_path}")
 
 
 async def process_screenshot(image_path: Path, extractor: ScreenshotExtractor, config: dict, output_dir: Path, dry_run: bool = False):
@@ -143,11 +159,27 @@ async def process_screenshot(image_path: Path, extractor: ScreenshotExtractor, c
     logger.info(f"  New filename: {new_path.name}")
     
     if not dry_run:
-        # Copy file to new location with new name
-        shutil.copy2(image_path, new_path)
-        logger.info(f"  Copied to: {new_path}")
+        try:
+            # Copy file to new location with new name
+            shutil.copy2(image_path, new_path)
+            logger.info(f"  Copied to: {new_path}")
+            
+            # Delete the original file after successful copy
+            image_path.unlink()
+            logger.info(f"  Deleted original: {image_path}")
+        except Exception as e:
+            logger.error(f"  Failed to process file {image_path}: {e}")
+            # If new file was created but delete failed, clean up the new file
+            if new_path.exists():
+                try:
+                    new_path.unlink()
+                    logger.info(f"  Cleaned up incomplete copy: {new_path}")
+                except Exception as cleanup_error:
+                    logger.error(f"  Failed to clean up {new_path}: {cleanup_error}")
+            return
     else:
         logger.info(f"  [DRY RUN] Would copy to: {new_path}")
+        logger.info(f"  [DRY RUN] Would delete original: {image_path}")
 
 
 async def process_directory(directory: Path, pdf_extractor: BibliographicExtractor, screenshot_extractor: ScreenshotExtractor, config: dict, output_dir: Path, dry_run: bool = False):

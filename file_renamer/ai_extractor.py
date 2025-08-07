@@ -43,7 +43,11 @@ class BibliographicExtractor:
                 "- If there's no author but there is an editor, provide the editor information\n"
                 "- Also extract just the last name of the primary editor (editor_last field)\n"
                 "- Extract the publication year in YYYY format if possible\n"
-                "- Extract the complete title of the publication\n"
+                "- Extract the main title and subtitle separately if present\n"
+                "- Title should be the main title only (before colon, dash, or 'How'/'Why'/'What' phrases)\n"
+                "- Subtitle should be the descriptive part after colon, dash, or explanatory phrases\n"
+                "- Examples: 'Red Mafiya: How the Russian Mob Has Invaded America' → title='Red Mafiya', subtitle='How the Russian Mob Has Invaded America'\n"
+                "- 'Digital Transformation - A Guide for Modern Business' → title='Digital Transformation', subtitle='A Guide for Modern Business'\n"
                 "- For last names, handle various naming conventions correctly (e.g., 'van Gogh' → 'van Gogh', 'O'Brien' → 'O'Brien')\n"
                 "- If information is unclear or missing, make your best educated guess based on the context"
             )
@@ -62,7 +66,8 @@ class BibliographicExtractor:
         try:
             prompt = (
                 "Please extract the bibliographic information from the following text. "
-                "Focus on finding the author(s) or editor(s), publication year, and title.\n\n"
+                "Focus on finding the author(s) or editor(s), publication year, main title, and subtitle (if present). "
+                "Pay special attention to splitting titles and subtitles properly.\n\n"
                 f"Text:\n{pdf_text}"
             )
             
