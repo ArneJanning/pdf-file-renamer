@@ -84,7 +84,7 @@ async def process_pdf(pdf_path: Path, extractor: BibliographicExtractor, config:
     if bib_info.subtitle:
         logger.info(f"  Subtitle: {bib_info.subtitle}")
         logger.info(f"  Full title: {bib_info.full_title}")
-    logger.debug(f"  Using template: {config['pdf_template']}")
+    logger.info(f"  Template: {config['pdf_template']}")
     logger.info(f"  New filename: {new_path.name}")
     
     if not dry_run:
